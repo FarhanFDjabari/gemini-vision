@@ -16,7 +16,6 @@ This project is basically a mobile app that allows the user to take a picture an
 To run the project, you need to have the following tools installed:
 
 - [Flutter](https://flutter.dev/docs/get-started/install)
-- [Google Gemini API Key](https://ai.google.dev/gemini-api/docs/vision?lang=rest#set-up-project-and-key)
 
 ## Installation
 
