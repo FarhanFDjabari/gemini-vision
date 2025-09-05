@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gemini_vision/core/data/datasource/app_datasource.dart';
 import 'package:image/image.dart' as img;
@@ -23,6 +24,10 @@ class AppRepository {
 
   Future<String> processCapturedImage(XFile image) async {
     final imageBytes = await image.readAsBytes();
+    return await compute(_processImageInIsolate, imageBytes);
+  }
+
+  String _processImageInIsolate(Uint8List imageBytes) {
     final decodedImage = img.decodeImage(imageBytes);
 
     if (decodedImage == null) {

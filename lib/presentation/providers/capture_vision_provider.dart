@@ -17,7 +17,7 @@ class CaptureVisionNotifier
 
   Future<void> captureVision(XFile xFile) async {
     state = AsyncValue.loading();
-    final repository = ref.watch(repositoryProvider);
+    final repository = ref.read(repositoryProvider);
 
     try {
       final caption = await repository.getCaption(xFile);
@@ -27,7 +27,7 @@ class CaptureVisionNotifier
           name: 'CaptureVisionNotifierError', level: Level.SEVERE.value);
       if (e is HttpException) {
         state = AsyncValue.error(
-          CaptureVisionError("There's an error with the server"),
+          CaptureVisionError(e.message),
           StackTrace.current,
         );
       } else {

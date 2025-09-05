@@ -61,7 +61,11 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
   Future<void> _initCamera(int selectedCameraIndex) async {
     var selectedCamera =
         cameras.elementAtOrNull(selectedCameraIndex) ?? cameras.first;
-    _cameraController = CameraController(selectedCamera, ResolutionPreset.max);
+    _cameraController = CameraController(
+      selectedCamera,
+      ResolutionPreset.max,
+      enableAudio: false,
+    );
 
     await _cameraController.initialize().then((_) {
       if (!mounted) {
@@ -95,7 +99,6 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
 
   @override
   Widget build(BuildContext context) {
-    final captureState = ref.watch(captureVisionProvider);
     final statusBarHeight = MediaQuery.viewPaddingOf(context).top;
     ref.listen(
       captureVisionProvider,
@@ -112,9 +115,29 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
                   );
                 },
               );
+            } else if (state is CaptureVisionError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                ),
+              );
             }
           },
-          error: (_, __) {},
+          error: (e, __) {
+            if (e is CaptureVisionError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(e.message),
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(e.toString()),
+                ),
+              );
+            }
+          },
           loading: () {},
         );
       },
@@ -128,9 +151,24 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
         alignment: Alignment.bottomCenter,
         children: [
           if (_cameraController.value.isInitialized) ...[
-            CaptureVisionCameraPreview(
-              controller: _cameraController,
-              isLoading: captureState.isLoading,
+            Positioned.fill(
+              child: FittedBox(
+                alignment: Alignment.center,
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _cameraController.value.previewSize?.height ?? 1,
+                  height: _cameraController.value.previewSize?.width ?? 1,
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      final captureState = ref.watch(captureVisionProvider);
+                      return CaptureVisionCameraPreview(
+                        controller: _cameraController,
+                        isLoading: captureState.isLoading,
+                      );
+                    },
+                  ),
+                ),
+              ),
             ),
           ] else ...[
             Center(
@@ -159,17 +197,22 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
                     ),
                   ],
                 ),
-                FloatingActionButton(
-                  shape: CircleBorder(),
-                  tooltip: "Take picture",
-                  onPressed: captureState.isLoading
-                      ? null
-                      : () {
-                          takePicture();
-                        },
-                  child: captureState.isLoading
-                      ? CircularProgressIndicator()
-                      : Icon(Icons.camera_alt),
+                Consumer(
+                  builder: (context, ref, child) {
+                    final captureState = ref.watch(captureVisionProvider);
+                    return FloatingActionButton(
+                      shape: CircleBorder(),
+                      tooltip: "Take picture",
+                      onPressed: captureState.isLoading
+                          ? null
+                          : () async {
+                              await takePicture();
+                            },
+                      child: captureState.isLoading
+                          ? CircularProgressIndicator()
+                          : Icon(Icons.camera_alt),
+                    );
+                  },
                 ),
               ],
             ),

@@ -20,16 +20,13 @@ class _CaptureVisionCameraPreviewState
     extends State<CaptureVisionCameraPreview> {
   @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: MediaQuery.sizeOf(context).aspectRatio,
-      child: CameraPreview(
-        widget.controller,
-        child: widget.isLoading
-            ? Center(
-                child: CircularProgressIndicator(),
-              )
-            : null,
-      ),
+    return CameraPreview(
+      widget.controller,
+      child: widget.isLoading
+          ? Center(
+              child: CircularProgressIndicator(),
+            )
+          : null,
     );
   }
 }
