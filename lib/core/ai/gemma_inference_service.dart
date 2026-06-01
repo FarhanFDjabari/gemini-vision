@@ -128,10 +128,10 @@ class GemmaInferenceService implements InferenceService {
   }
 
   @override
-  Future<String> generateCaption({
+  Stream<String> generateCaption({
     required Uint8List imageBytes,
     required String prompt,
-  }) async {
+  }) async* {
     await ensureLoaded();
     final model = _model;
     if (model == null) {
@@ -144,7 +144,7 @@ class GemmaInferenceService implements InferenceService {
       await session.addQueryChunk(
         Message.withImage(text: prompt, imageBytes: imageBytes, isUser: true),
       );
-      return await session.getResponse();
+      yield* session.getResponseAsync();
     } on Exception catch (e) {
       throw InferenceException('Failed to generate caption: $e');
     } finally {

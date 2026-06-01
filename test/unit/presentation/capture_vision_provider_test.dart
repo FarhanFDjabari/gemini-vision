@@ -11,20 +11,22 @@ import 'package:gemini_vision/presentation/providers/capture_vision_state.dart';
 
 class _StubDataSource implements VisionDataSource {
   @override
-  Future<String> getCaption(Uint8List imageBytes) async => '';
+  Stream<String> getCaption(Uint8List imageBytes) => const Stream.empty();
 }
 
 class _FakeRepository extends AppRepository {
-  _FakeRepository({this.caption, this.error})
+  _FakeRepository({this.caption, this.chunks, this.error})
     : super(datasource: _StubDataSource());
 
   final String? caption;
+  final List<String>? chunks;
   final Object? error;
 
   @override
-  Future<String> getCaption(XFile image) async {
-    if (error != null) throw error!;
-    return caption ?? '';
+  Stream<String> getCaption(XFile image) {
+    if (error != null) return Stream.error(error!);
+    if (chunks != null) return Stream.fromIterable(chunks!);
+    return Stream.value(caption ?? '');
   }
 }
 
@@ -47,6 +49,27 @@ void main() {
 
       await container.read(captureVisionProvider.notifier).captureVision(xFile);
 
+      final state = container.read(captureVisionProvider);
+      expect(state.value, isA<CaptureVisionLoaded>());
+      expect((state.value as CaptureVisionLoaded).data, 'A cat naps.');
+    });
+
+    test('accumulates streamed chunks then emits the full caption', () async {
+      final container = _containerFor(
+        _FakeRepository(chunks: const ['A ', 'cat ', 'naps.']),
+      );
+
+      final streamed = <String>[];
+      container.listen(captureVisionProvider, (_, next) {
+        final value = next.value;
+        if (value is CaptureVisionStreaming) {
+          streamed.add(value.partialText);
+        }
+      });
+
+      await container.read(captureVisionProvider.notifier).captureVision(xFile);
+
+      expect(streamed, ['A ', 'A cat ', 'A cat naps.']);
       final state = container.read(captureVisionProvider);
       expect(state.value, isA<CaptureVisionLoaded>());
       expect((state.value as CaptureVisionLoaded).data, 'A cat naps.');

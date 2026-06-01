@@ -5,9 +5,12 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gemini_vision/main.dart';
+import 'package:gemini_vision/core/tts/tts_service.dart';
 import 'package:gemini_vision/presentation/providers/capture_vision_provider.dart';
 import 'package:gemini_vision/presentation/providers/capture_vision_state.dart';
 import 'package:gemini_vision/presentation/widgets/capture_vision_camera_preview.dart';
+import 'package:gemini_vision/presentation/widgets/vision_result_dialog.dart';
+import 'package:gemini_vision/presentation/widgets/vision_scanning_indicator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class CaptureVisionScreen extends ConsumerStatefulWidget {
@@ -22,6 +25,7 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
     with WidgetsBindingObserver {
   CameraController? _cameraController;
   int _selectedCameraIndex = 0;
+  bool _resultDialogShown = false;
 
   @override
   void initState() {
@@ -100,6 +104,9 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
 
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
+      // Silence read-along and block further enqueues while backgrounded;
+      // streamed tokens keep arriving but must not be spoken.
+      ref.read(ttsServiceProvider).suspend();
       if (controller == null || !controller.value.isInitialized) {
         return;
       }
@@ -109,6 +116,7 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
         setState(() {});
       }
     } else if (state == AppLifecycleState.resumed) {
+      ref.read(ttsServiceProvider).resume();
       _requestPermission();
       if (_cameraController == null) {
         _initCamera(_selectedCameraIndex);
@@ -137,6 +145,21 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
     unawaited(controller.pausePreview());
   }
 
+  /// Opens the result dialog once per capture, the first time a caption starts
+  /// streaming. The dialog watches the provider itself, so it updates live as
+  /// tokens arrive. Dismissing it mid-stream does not reopen it; the flag is
+  /// reset when the next capture begins.
+  void _showResultDialog() {
+    if (_resultDialogShown) {
+      return;
+    }
+    _resultDialogShown = true;
+    showDialog(
+      context: context,
+      builder: (context) => const VisionResultDialog(),
+    );
+  }
+
   void _resumePreview() {
     final controller = _cameraController;
     if (controller == null ||
@@ -155,21 +178,20 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
       (prev, next) {
         next.when(
           data: (state) {
-            _resumePreview();
-            if (state is CaptureVisionLoaded) {
-              showDialog(
-                context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    title: Text("Vision"),
-                    content: Text(state.data),
-                  );
-                },
-              );
-            } else if (state is CaptureVisionError) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(state.message)));
+            // Keep the preview frozen while tokens stream in so the camera does
+            // not compete with the model; resume once generation finishes.
+            if (state is CaptureVisionStreaming) {
+              _showResultDialog();
+            } else if (state is CaptureVisionLoaded) {
+              _resumePreview();
+              _showResultDialog();
+            } else {
+              _resumePreview();
+              if (state is CaptureVisionError) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(state.message)));
+              }
             }
           },
           error: (e, __) {
@@ -184,7 +206,11 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
               ).showSnackBar(SnackBar(content: Text(e.toString())));
             }
           },
-          loading: _pausePreview,
+          loading: () {
+            // A new capture started: allow the result dialog to show again.
+            _resultDialogShown = false;
+            _pausePreview();
+          },
         );
       },
       onError: (error, stackTrace) {
@@ -257,7 +283,7 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
                               await takePicture();
                             },
                       child: captureState.isLoading
-                          ? CircularProgressIndicator()
+                          ? const VisionScanningIndicator()
                           : Icon(Icons.camera_alt),
                     );
                   },

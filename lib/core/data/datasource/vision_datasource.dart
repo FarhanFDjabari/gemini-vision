@@ -5,9 +5,10 @@ import 'package:gemini_vision/core/ai/gemma_inference_service.dart';
 import 'package:gemini_vision/core/ai/inference_service.dart';
 import 'package:gemini_vision/core/config/model_config.dart';
 
-/// Produces a caption describing the contents of an image.
+/// Produces a caption describing the contents of an image, streamed as the
+/// model emits token chunks.
 abstract interface class VisionDataSource {
-  Future<String> getCaption(Uint8List imageBytes);
+  Stream<String> getCaption(Uint8List imageBytes);
 }
 
 /// [VisionDataSource] that delegates to the on-device LiteRT-LM model.
@@ -17,7 +18,7 @@ class LiteRtVisionDataSource implements VisionDataSource {
   final InferenceService _inferenceService;
 
   @override
-  Future<String> getCaption(Uint8List imageBytes) {
+  Stream<String> getCaption(Uint8List imageBytes) {
     return _inferenceService.generateCaption(
       imageBytes: imageBytes,
       prompt: ModelConfig.visionPrompt,

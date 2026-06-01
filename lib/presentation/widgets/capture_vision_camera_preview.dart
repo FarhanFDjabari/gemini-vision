@@ -1,5 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:gemini_vision/presentation/widgets/vision_scanning_overlay.dart';
 
 class CaptureVisionCameraPreview extends StatefulWidget {
   const CaptureVisionCameraPreview({
@@ -22,9 +23,7 @@ class _CaptureVisionCameraPreviewState
   Widget build(BuildContext context) {
     return CameraPreview(
       widget.controller,
-      child: widget.isLoading
-          ? Center(child: CircularProgressIndicator())
-          : null,
+      child: widget.isLoading ? const VisionScanningOverlay() : null,
     );
   }
 }

@@ -71,13 +71,13 @@ class FakeInferenceService implements InferenceService {
   }
 
   @override
-  Future<String> generateCaption({
+  Stream<String> generateCaption({
     required Uint8List imageBytes,
     required String prompt,
-  }) async {
+  }) {
     lastImageBytes = imageBytes;
     lastPrompt = prompt;
-    return caption;
+    return Stream.value(caption);
   }
 
   @override

@@ -51,8 +51,9 @@ abstract interface class InferenceService {
   /// re-downloaded from scratch.
   Future<void> deleteModel();
 
-  /// Generates a caption for the given image bytes using [prompt].
-  Future<String> generateCaption({
+  /// Generates a caption for the given image bytes using [prompt], emitting
+  /// the response incrementally as token chunks so the UI can render it live.
+  Stream<String> generateCaption({
     required Uint8List imageBytes,
     required String prompt,
   });

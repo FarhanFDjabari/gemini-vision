@@ -10,9 +10,9 @@ class AppRepository {
   AppRepository({required VisionDataSource datasource})
     : _visionDataSource = datasource;
 
-  Future<String> getCaption(XFile image) async {
+  Stream<String> getCaption(XFile image) async* {
     final processedImage = await processCapturedImage(image);
-    return _visionDataSource.getCaption(processedImage);
+    yield* _visionDataSource.getCaption(processedImage);
   }
 
   Future<Uint8List> processCapturedImage(XFile image) async {

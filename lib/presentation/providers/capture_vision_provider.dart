@@ -20,8 +20,12 @@ class CaptureVisionNotifier
     final repository = ref.read(repositoryProvider);
 
     try {
-      final caption = await repository.getCaption(xFile);
-      state = AsyncValue.data(CaptureVisionLoaded(caption));
+      final buffer = StringBuffer();
+      await for (final chunk in repository.getCaption(xFile)) {
+        buffer.write(chunk);
+        state = AsyncValue.data(CaptureVisionStreaming(buffer.toString()));
+      }
+      state = AsyncValue.data(CaptureVisionLoaded(buffer.toString()));
     } on InferenceException catch (e, stackTrace) {
       log(
         e.toString(),
