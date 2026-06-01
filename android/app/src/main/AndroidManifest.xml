@@ -12,7 +12,8 @@
     <application
         android:label="gemini_vision"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round">
         <!-- GPU acceleration hints for the LiteRT-LM runtime; optional so the
              app still installs on devices without these vendor libraries. -->
         <uses-native-library
