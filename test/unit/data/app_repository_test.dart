@@ -10,9 +10,9 @@ class _RecordingDataSource implements VisionDataSource {
   Uint8List? receivedBytes;
 
   @override
-  Future<String> getCaption(Uint8List imageBytes) async {
+  Stream<String> getCaption(Uint8List imageBytes) {
     receivedBytes = imageBytes;
-    return 'recorded caption';
+    return Stream.value('recorded caption');
   }
 }
 
@@ -27,9 +27,9 @@ void main() {
       final dataSource = _RecordingDataSource();
       final repository = AppRepository(datasource: dataSource);
 
-      final caption = await repository.getCaption(
-        XFile.fromData(pngBytes, name: 'frame.png'),
-      );
+      final caption = await repository
+          .getCaption(XFile.fromData(pngBytes, name: 'frame.png'))
+          .join();
 
       expect(caption, 'recorded caption');
       expect(dataSource.receivedBytes, isNotNull);
