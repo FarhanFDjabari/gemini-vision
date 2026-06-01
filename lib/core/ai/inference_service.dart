@@ -10,6 +10,16 @@ class InferenceException implements Exception {
   String toString() => 'InferenceException: $message';
 }
 
+/// Raised when an in-progress [InferenceService.downloadModel] is cancelled via
+/// [InferenceService.cancelDownload]. Distinct from [InferenceException] so the
+/// UI can treat a user cancellation as a normal outcome rather than a failure.
+class InferenceCancelledException implements Exception {
+  const InferenceCancelledException();
+
+  @override
+  String toString() => 'InferenceCancelledException';
+}
+
 /// Boundary around the on-device LiteRT-LM model lifecycle and inference.
 ///
 /// Keeping this behind an interface lets the rest of the app (repository,
@@ -21,8 +31,16 @@ abstract interface class InferenceService {
 
   /// Downloads the model, reporting progress as an integer percentage (0-100).
   ///
-  /// No-op beyond activation when the model is already installed.
+  /// Runs in a background-capable download that survives transient network
+  /// errors (retried with backoff) and app backgrounding. No-op beyond
+  /// activation when the model is already installed.
+  ///
+  /// Throws [InferenceCancelledException] when interrupted by [cancelDownload].
   Future<void> downloadModel({required void Function(int progress) onProgress});
+
+  /// Cancels an in-progress [downloadModel] call, stopping the underlying
+  /// download task so it does not keep running in the background.
+  void cancelDownload();
 
   /// Ensures the model is loaded into memory and ready for inference.
   Future<void> ensureLoaded();

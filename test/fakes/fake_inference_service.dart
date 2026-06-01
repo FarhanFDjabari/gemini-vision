@@ -10,6 +10,7 @@ class FakeInferenceService implements InferenceService {
     this.downloadError,
     this.loadError,
     this.caption = 'a caption',
+    this.cancelDuringDownload = false,
   });
 
   bool installed;
@@ -20,9 +21,14 @@ class FakeInferenceService implements InferenceService {
 
   bool downloadCalled = false;
   bool deleteCalled = false;
+  bool cancelCalled = false;
   int ensureLoadedCalls = 0;
   Uint8List? lastImageBytes;
   String? lastPrompt;
+
+  /// When true, [downloadModel] throws [InferenceCancelledException] after
+  /// emitting the first progress step, simulating a cancellation mid-download.
+  bool cancelDuringDownload;
 
   @override
   Future<bool> isModelInstalled() async => installed;
@@ -37,8 +43,16 @@ class FakeInferenceService implements InferenceService {
     }
     for (final progress in progressSteps) {
       onProgress(progress);
+      if (cancelDuringDownload) {
+        throw const InferenceCancelledException();
+      }
     }
     installed = true;
+  }
+
+  @override
+  void cancelDownload() {
+    cancelCalled = true;
   }
 
   @override
