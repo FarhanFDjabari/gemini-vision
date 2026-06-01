@@ -40,18 +40,24 @@ git clone https://github.com/FarhanFDjabari/gemini-vision.git
 
 ## Usage
 
-The model is downloaded from Hugging Face. If you are using gated weights, supply a
-[Hugging Face access token](https://huggingface.co/settings/tokens). You can also
-override the download URL (for a self-hosted mirror or a different quantization):
+The app downloads a **public** Gemma LiteRT-LM model from Hugging Face on first
+launch, so no token is required — just run:
+
+```bash
+flutter run
+```
+
+If you point the app at gated/self-hosted weights, both of these can be supplied
+at build time (both optional):
 
 ```bash
 flutter run \
-  --dart-define=HUGGINGFACE_TOKEN=hf_your_token \
-  --dart-define=MODEL_URL=https://huggingface.co/.../model.litertlm
+  --dart-define=MODEL_URL=https://huggingface.co/.../model.litertlm \
+  --dart-define=HUGGINGFACE_TOKEN=hf_your_token
 ```
 
-Both defines are optional — without them the app uses the default public model URL
-defined in `lib/core/config/model_config.dart` and an unauthenticated download.
+Without them the app uses the default public model URL defined in
+`lib/core/config/model_config.dart`.
 
 ## Testing
 

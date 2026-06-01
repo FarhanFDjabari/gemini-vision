@@ -6,10 +6,11 @@ class ModelConfig {
 
   /// Default download location for the multimodal Gemma 4 E2B LiteRT-LM model.
   ///
-  /// Override at build time with `--dart-define=MODEL_URL=...` when hosting the
-  /// weights elsewhere or pointing at a different quantization.
+  /// This is a public model and does not require a HuggingFace token. Override
+  /// at build time with `--dart-define=MODEL_URL=...` when hosting the weights
+  /// elsewhere or pointing at a different quantization.
   static const String defaultDownloadUrl =
-      'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-int4.litertlm';
+      'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/blob/main/gemma-4-E2B-it.litertlm?download=true';
 
   /// Effective download URL, honouring the [Env.modelDownloadUrl] override.
   static String get downloadUrl =>
