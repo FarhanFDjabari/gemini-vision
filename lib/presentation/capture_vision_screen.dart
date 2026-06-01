@@ -154,8 +154,10 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
       return;
     }
     _resultDialogShown = true;
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => const VisionResultDialog(),
     );
   }

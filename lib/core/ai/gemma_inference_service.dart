@@ -105,8 +105,14 @@ class GemmaInferenceService implements InferenceService {
         ).fromNetwork(ModelConfig.downloadUrl).install();
       }
 
+      // Load on the CPU backend. The GPU backend compiles the inference graph
+      // and uploads multi-GB weights to GPU memory at engine-creation time,
+      // which contends with Flutter's rasterizer and has frozen/rebooted
+      // devices here. The backend is fixed for the life of the engine, so this
+      // also keeps generation on the CPU.
       _model = await FlutterGemma.getActiveModel(
         maxTokens: ModelConfig.maxTokens,
+        preferredBackend: PreferredBackend.cpu,
         supportImage: true,
         maxNumImages: 1,
       );
