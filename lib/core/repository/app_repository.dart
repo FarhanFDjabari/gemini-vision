@@ -20,6 +20,10 @@ class AppRepository {
     return compute(_processImageInIsolate, imageBytes);
   }
 
+  /// Longest-edge bound for the image sent to the model. The vision encoder
+  /// downsamples internally, so anything larger is wasted decode/encode work.
+  static const int _maxDimension = 1024;
+
   static Uint8List _processImageInIsolate(Uint8List imageBytes) {
     final decodedImage = img.decodeImage(imageBytes);
 
@@ -27,16 +31,23 @@ class AppRepository {
       throw img.ImageException('Failed to decode image');
     }
 
-    var resizedImage = decodedImage;
+    final longestSide = decodedImage.width > decodedImage.height
+        ? decodedImage.width
+        : decodedImage.height;
 
-    while (resizedImage.lengthInBytes > 10 * 1024 * 1024) {
-      resizedImage = img.copyResize(
-        resizedImage,
-        width: (resizedImage.width * 0.9).toInt(),
-      );
-    }
+    final resizedImage = longestSide > _maxDimension
+        ? img.copyResize(
+            decodedImage,
+            width: decodedImage.width >= decodedImage.height
+                ? _maxDimension
+                : null,
+            height: decodedImage.height > decodedImage.width
+                ? _maxDimension
+                : null,
+          )
+        : decodedImage;
 
-    return img.encodePng(resizedImage);
+    return img.encodeJpg(resizedImage, quality: 85);
   }
 }
 

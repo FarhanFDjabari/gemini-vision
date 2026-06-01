@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:camera/camera.dart';
@@ -19,21 +20,29 @@ class CaptureVisionScreen extends ConsumerStatefulWidget {
 
 class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
     with WidgetsBindingObserver {
-  late CameraController _cameraController;
+  CameraController? _cameraController;
+  int _selectedCameraIndex = 0;
 
   @override
   void initState() {
     WidgetsBinding.instance.addObserver(this);
     super.initState();
     _requestPermission();
-    _initCamera(1);
+    _initCamera(_defaultCameraIndex());
   }
 
   @override
   void dispose() {
-    _cameraController.dispose();
+    _cameraController?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  int _defaultCameraIndex() {
+    final backIndex = cameras.indexWhere(
+      (camera) => camera.lensDirection == CameraLensDirection.back,
+    );
+    return backIndex == -1 ? 0 : backIndex;
   }
 
   Future<void> _requestPermission() async {
@@ -59,45 +68,83 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
   }
 
   Future<void> _initCamera(int selectedCameraIndex) async {
-    var selectedCamera =
+    final selectedCamera =
         cameras.elementAtOrNull(selectedCameraIndex) ?? cameras.first;
-    _cameraController = CameraController(
+    _selectedCameraIndex = cameras.indexOf(selectedCamera);
+
+    await _cameraController?.dispose();
+
+    final controller = CameraController(
       selectedCamera,
-      ResolutionPreset.max,
+      ResolutionPreset.veryHigh,
       enableAudio: false,
     );
+    _cameraController = controller;
 
-    await _cameraController
-        .initialize()
-        .then((_) {
-          if (!mounted) {
-            return;
-          }
-          setState(() {});
-        })
-        .catchError((error) {
-          log("Camera error: ${error.toString()}", error: error);
-        });
+    try {
+      await controller.initialize();
+    } on CameraException catch (error) {
+      log("Camera error: ${error.toString()}", error: error);
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final CameraController controller = _cameraController;
+    final controller = _cameraController;
 
-    if (!controller.value.isInitialized) {
-      return;
-    }
-
-    if (state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      if (controller == null || !controller.value.isInitialized) {
+        return;
+      }
       controller.dispose();
+      _cameraController = null;
+      if (mounted) {
+        setState(() {});
+      }
     } else if (state == AppLifecycleState.resumed) {
       _requestPermission();
+      if (_cameraController == null) {
+        _initCamera(_selectedCameraIndex);
+      }
     }
   }
 
   Future<void> takePicture() async {
-    final result = await _cameraController.takePicture();
+    final controller = _cameraController;
+    if (controller == null || !controller.value.isInitialized) {
+      return;
+    }
+    final result = await controller.takePicture();
     ref.read(captureVisionProvider.notifier).captureVision(result);
+  }
+
+  /// Freezes the live preview so the camera stream stops competing with the
+  /// on-device model for GPU/memory bandwidth while a caption is generated.
+  void _pausePreview() {
+    final controller = _cameraController;
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        controller.value.isPreviewPaused) {
+      return;
+    }
+    unawaited(controller.pausePreview());
+  }
+
+  void _resumePreview() {
+    final controller = _cameraController;
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        !controller.value.isPreviewPaused) {
+      return;
+    }
+    unawaited(controller.resumePreview());
   }
 
   @override
@@ -108,6 +155,7 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
       (prev, next) {
         next.when(
           data: (state) {
+            _resumePreview();
             if (state is CaptureVisionLoaded) {
               showDialog(
                 context: context,
@@ -125,6 +173,7 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
             }
           },
           error: (e, __) {
+            _resumePreview();
             if (e is CaptureVisionError) {
               ScaffoldMessenger.of(
                 context,
@@ -135,31 +184,33 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
               ).showSnackBar(SnackBar(content: Text(e.toString())));
             }
           },
-          loading: () {},
+          loading: _pausePreview,
         );
       },
       onError: (error, stackTrace) {
         log(error.toString(), error: error, stackTrace: stackTrace);
       },
     );
+    final controller = _cameraController;
+    final isCameraReady = controller != null && controller.value.isInitialized;
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: Stack(
         alignment: Alignment.bottomCenter,
         children: [
-          if (_cameraController.value.isInitialized) ...[
+          if (isCameraReady) ...[
             Positioned.fill(
               child: FittedBox(
                 alignment: Alignment.center,
                 fit: BoxFit.cover,
                 child: SizedBox(
-                  width: _cameraController.value.previewSize?.height ?? 1,
-                  height: _cameraController.value.previewSize?.width ?? 1,
+                  width: controller.value.previewSize?.height ?? 1,
+                  height: controller.value.previewSize?.width ?? 1,
                   child: Consumer(
                     builder: (context, ref, child) {
                       final captureState = ref.watch(captureVisionProvider);
                       return CaptureVisionCameraPreview(
-                        controller: _cameraController,
+                        controller: controller,
                         isLoading: captureState.isLoading,
                       );
                     },
@@ -186,12 +237,9 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
                   children: [
                     ElevatedButton(
                       onPressed: () {
-                        int selectedCameraIndex = cameras.indexOf(
-                          _cameraController.description,
-                        );
-                        selectedCameraIndex =
-                            (selectedCameraIndex + 1) % cameras.length;
-                        _initCamera(selectedCameraIndex);
+                        final nextIndex =
+                            (_selectedCameraIndex + 1) % cameras.length;
+                        _initCamera(nextIndex);
                       },
                       child: Icon(Icons.flip_camera_android_rounded),
                     ),
