@@ -63,6 +63,18 @@ class GemmaInferenceService implements InferenceService {
   }
 
   @override
+  Future<void> deleteModel() async {
+    await _model?.close();
+    _model = null;
+    try {
+      await FlutterGemma.uninstallModel(ModelConfig.fileName);
+    } on Exception {
+      // Nothing usable to remove (e.g. metadata already gone); a fresh
+      // download will overwrite any leftover file regardless.
+    }
+  }
+
+  @override
   Future<String> generateCaption({
     required Uint8List imageBytes,
     required String prompt,

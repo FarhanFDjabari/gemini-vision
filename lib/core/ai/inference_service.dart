@@ -27,6 +27,12 @@ abstract interface class InferenceService {
   /// Ensures the model is loaded into memory and ready for inference.
   Future<void> ensureLoaded();
 
+  /// Removes the installed model metadata and files from the device.
+  ///
+  /// Used to clear a corrupt or partially downloaded model so it can be
+  /// re-downloaded from scratch.
+  Future<void> deleteModel();
+
   /// Generates a caption for the given image bytes using [prompt].
   Future<String> generateCaption({
     required Uint8List imageBytes,

@@ -20,9 +20,16 @@ class ModelSetupNotifier extends Notifier<ModelSetupState> {
 
     try {
       if (await service.isModelInstalled()) {
-        await service.ensureLoaded();
-        state = const ModelSetupReady();
-        return;
+        try {
+          await service.ensureLoaded();
+          state = const ModelSetupReady();
+          return;
+        } on InferenceException {
+          // Metadata reports the model installed, but it failed to load
+          // (e.g. a partial/corrupt download). Purge it and re-download once;
+          // a second failure falls through to the error state below.
+          await service.deleteModel();
+        }
       }
 
       state = const ModelSetupDownloading(0);
