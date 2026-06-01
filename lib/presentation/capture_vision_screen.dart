@@ -67,14 +67,17 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
       enableAudio: false,
     );
 
-    await _cameraController.initialize().then((_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {});
-    }).catchError((error) {
-      log("Camera error: ${error.toString()}", error: error);
-    });
+    await _cameraController
+        .initialize()
+        .then((_) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {});
+        })
+        .catchError((error) {
+          log("Camera error: ${error.toString()}", error: error);
+        });
   }
 
   @override
@@ -116,26 +119,20 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
                 },
               );
             } else if (state is CaptureVisionError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                ),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(state.message)));
             }
           },
           error: (e, __) {
             if (e is CaptureVisionError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(e.message),
-                ),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(e.message)));
             } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(e.toString()),
-                ),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(e.toString())));
             }
           },
           loading: () {},
@@ -171,13 +168,15 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
               ),
             ),
           ] else ...[
-            Center(
-              child: CircularProgressIndicator(),
-            ),
+            Center(child: CircularProgressIndicator()),
           ],
           Padding(
-            padding:
-                EdgeInsets.fromLTRB(16.0, statusBarHeight + 16.0, 16.0, 16.0),
+            padding: EdgeInsets.fromLTRB(
+              16.0,
+              statusBarHeight + 16.0,
+              16.0,
+              16.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -187,8 +186,9 @@ class _CaptureVisionScreenState extends ConsumerState<CaptureVisionScreen>
                   children: [
                     ElevatedButton(
                       onPressed: () {
-                        int selectedCameraIndex =
-                            cameras.indexOf(_cameraController.description);
+                        int selectedCameraIndex = cameras.indexOf(
+                          _cameraController.description,
+                        );
                         selectedCameraIndex =
                             (selectedCameraIndex + 1) % cameras.length;
                         _initCamera(selectedCameraIndex);

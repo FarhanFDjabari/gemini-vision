@@ -49,5 +49,7 @@
 	<string>Capture image to upload to gemini</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Your app needs access to the photo library to select photos and videos.</string>
+    <key>UIFileSharingEnabled</key>
+    <true/>
 </dict>
 </plist>

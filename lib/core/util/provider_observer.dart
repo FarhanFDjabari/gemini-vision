@@ -27,7 +27,8 @@ class AppDataObserver extends ProviderObserver {
     ProviderContainer container,
   ) {
     releaseSafeDebugPrint(
-        'Provider $provider updated from $previousValue to $newValue');
+      'Provider $provider updated from $previousValue to $newValue',
+    );
   }
 
   @override

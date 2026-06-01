@@ -1,22 +1,25 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gemini_vision/core/util/provider_observer.dart';
-import 'package:gemini_vision/presentation/capture_vision_screen.dart';
+import 'package:gemini_vision/env.dart';
+import 'package:gemini_vision/presentation/model_setup_screen.dart';
 
 late List<CameraDescription> cameras;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await FlutterGemma.initialize(
+    huggingFaceToken: Env.huggingFaceToken.isEmpty
+        ? null
+        : Env.huggingFaceToken,
+  );
+
   cameras = await availableCameras();
 
-  runApp(
-    ProviderScope(
-      observers: [AppDataObserver()],
-      child: const MainApp(),
-    ),
-  );
+  runApp(ProviderScope(observers: [AppDataObserver()], child: const MainApp()));
 }
 
 class MainApp extends StatelessWidget {
@@ -24,8 +27,6 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: CaptureVisionScreen(),
-    );
+    return const MaterialApp(home: ModelSetupScreen());
   }
 }
