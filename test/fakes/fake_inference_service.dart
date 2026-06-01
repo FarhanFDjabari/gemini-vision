@@ -19,6 +19,7 @@ class FakeInferenceService implements InferenceService {
   String caption;
 
   bool downloadCalled = false;
+  bool deleteCalled = false;
   int ensureLoadedCalls = 0;
   Uint8List? lastImageBytes;
   String? lastPrompt;
@@ -46,6 +47,13 @@ class FakeInferenceService implements InferenceService {
     if (loadError != null) {
       throw loadError!;
     }
+  }
+
+  @override
+  Future<void> deleteModel() async {
+    deleteCalled = true;
+    installed = false;
+    loadError = null;
   }
 
   @override

@@ -82,6 +82,26 @@ void main() {
       expect((state as ModelSetupError).message, 'network down');
     });
 
+    test(
+      're-downloads when an installed model fails to load',
+      () async {
+        final fake = FakeInferenceService(
+          installed: true,
+          loadError: const InferenceException(
+            'Active model is no longer installed',
+          ),
+        );
+        final container = _containerFor(fake);
+
+        await _settle(container);
+
+        expect(container.read(modelSetupProvider), isA<ModelSetupReady>());
+        expect(fake.deleteCalled, isTrue);
+        expect(fake.downloadCalled, isTrue);
+        expect(fake.ensureLoadedCalls, 2);
+      },
+    );
+
     test('retry recovers after a transient failure', () async {
       final fake = FakeInferenceService(
         installed: false,
