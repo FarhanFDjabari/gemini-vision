@@ -1,37 +1,30 @@
-import 'dart:convert';
-
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gemini_vision/core/data/datasource/app_datasource.dart';
+import 'package:gemini_vision/core/data/datasource/vision_datasource.dart';
 import 'package:image/image.dart' as img;
 
 class AppRepository {
-  final AppDataSource _appDataSource;
+  final VisionDataSource _visionDataSource;
 
-  AppRepository({required AppDataSource datasource})
-      : _appDataSource = datasource;
+  AppRepository({required VisionDataSource datasource})
+    : _visionDataSource = datasource;
 
   Future<String> getCaption(XFile image) async {
-    try {
-      final processedImage = await processCapturedImage(image);
-      final response = await _appDataSource.getCaption(processedImage);
-      return response.caption;
-    } catch (e) {
-      rethrow;
-    }
+    final processedImage = await processCapturedImage(image);
+    return _visionDataSource.getCaption(processedImage);
   }
 
-  Future<String> processCapturedImage(XFile image) async {
+  Future<Uint8List> processCapturedImage(XFile image) async {
     final imageBytes = await image.readAsBytes();
-    return await compute(_processImageInIsolate, imageBytes);
+    return compute(_processImageInIsolate, imageBytes);
   }
 
-  String _processImageInIsolate(Uint8List imageBytes) {
+  static Uint8List _processImageInIsolate(Uint8List imageBytes) {
     final decodedImage = img.decodeImage(imageBytes);
 
     if (decodedImage == null) {
-      throw img.ImageException("Failed to decode image");
+      throw img.ImageException('Failed to decode image');
     }
 
     var resizedImage = decodedImage;
@@ -43,9 +36,7 @@ class AppRepository {
       );
     }
 
-    final pngBytes = img.encodePng(resizedImage);
-
-    return base64Encode(pngBytes);
+    return img.encodePng(resizedImage);
   }
 }
 

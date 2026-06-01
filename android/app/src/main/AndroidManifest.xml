@@ -3,12 +3,27 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!-- Foreground service keeps the large one-time model download alive. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera.any" />
 
     <application
         android:label="gemini_vision"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- GPU acceleration hints for the LiteRT-LM runtime; optional so the
+             app still installs on devices without these vendor libraries. -->
+        <uses-native-library
+            android:name="libOpenCL.so"
+            android:required="false" />
+        <uses-native-library
+            android:name="libOpenCL-car.so"
+            android:required="false" />
+        <uses-native-library
+            android:name="libOpenCL-pixel.so"
+            android:required="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

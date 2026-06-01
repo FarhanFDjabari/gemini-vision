@@ -2,24 +2,37 @@
 
 ## Introduction
 
-Gemini Vision is fun project that I started to learn more about Google Gemini API and how to use it to create a simple image recognition system.
-
-This project is basically a mobile app that allows the user to take a picture and get the description of the image powered by Gemini API.
+Gemini Vision is a fun project to explore on-device generative AI. It is a mobile
+app that lets the user take a picture and get a spoken-friendly description of the
+image — now powered entirely by an **on-device Gemma LiteRT-LM model** via the
+[`flutter_gemma`](https://pub.dev/packages/flutter_gemma) plugin, so inference runs
+locally with no network round-trip after the initial model download.
 
 ## Features
 
-- Get the description of the image using Gemini API
+- Describe a captured image using an on-device Gemma 4 (E2B) LiteRT-LM model
+- One-time model download on first launch with live progress and retry
 - Text-to-speech feature to read the description of the image **[Work in progress]**
+
+## How it works
+
+1. On launch the app checks whether the model is already present on the device.
+2. If it is missing, a setup screen shows download progress while the
+   `.litertlm` weights are fetched.
+3. Once the model is downloaded and loaded, the camera screen is shown and every
+   capture is captioned by the local model.
+
+The on-device lifecycle (install check, download, load, inference) lives behind
+`InferenceService` (`lib/core/ai/`), keeping the rest of the app testable without
+the native plugin.
 
 ## Requirements
 
-To run the project, you need to have the following tools installed:
-
-- [Flutter](https://flutter.dev/docs/get-started/install)
+- [Flutter](https://flutter.dev/docs/get-started/install) (3.41.x)
+- Android API 26+ or iOS 16+
+- A device with enough storage/RAM for the model (the E2B weights are several GB)
 
 ## Installation
-
-You can clone the repository using the following command:
 
 ```bash
 git clone https://github.com/FarhanFDjabari/gemini-vision.git
@@ -27,21 +40,24 @@ git clone https://github.com/FarhanFDjabari/gemini-vision.git
 
 ## Usage
 
-Before run the project, you need to create a `.env` file in the root of the project with the following content:
-
-```json
-{"gemini_api_key": YOUR_GEMINI_API_KEY}
-```
-
-You can get your Gemini API key by following the instructions in the [official documentation](https://ai.google.dev/gemini-api/docs/vision?lang=rest#set-up-project-and-key).
-
-To use the project, you can run the following command:
+The model is downloaded from Hugging Face. If you are using gated weights, supply a
+[Hugging Face access token](https://huggingface.co/settings/tokens). You can also
+override the download URL (for a self-hosted mirror or a different quantization):
 
 ```bash
-flutter run app --dart-define-from-file=.env
+flutter run \
+  --dart-define=HUGGINGFACE_TOKEN=hf_your_token \
+  --dart-define=MODEL_URL=https://huggingface.co/.../model.litertlm
 ```
 
-Please note that you need to provide .env as --dart-define-from-file argument to make sure that the environment variables are loaded correctly.
+Both defines are optional — without them the app uses the default public model URL
+defined in `lib/core/config/model_config.dart` and an unauthenticated download.
+
+## Testing
+
+```bash
+flutter test
+```
 
 ## License
 

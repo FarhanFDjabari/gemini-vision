@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gemini_vision/core/ai/inference_service.dart';
 import 'package:gemini_vision/core/repository/app_repository.dart';
 import 'package:gemini_vision/presentation/providers/capture_vision_state.dart';
 import 'package:logging/logging.dart';
@@ -16,29 +16,35 @@ class CaptureVisionNotifier
   }
 
   Future<void> captureVision(XFile xFile) async {
-    state = AsyncValue.loading();
+    state = const AsyncValue.loading();
     final repository = ref.read(repositoryProvider);
 
     try {
       final caption = await repository.getCaption(xFile);
       state = AsyncValue.data(CaptureVisionLoaded(caption));
-    } catch (e) {
-      log(e.toString(),
-          name: 'CaptureVisionNotifierError', level: Level.SEVERE.value);
-      if (e is HttpException) {
-        state = AsyncValue.error(
-          CaptureVisionError(e.message),
-          StackTrace.current,
-        );
-      } else {
-        state = AsyncValue.error(
-          CaptureVisionError("Unknown error occurred"),
-          StackTrace.current,
-        );
-      }
+    } on InferenceException catch (e, stackTrace) {
+      log(
+        e.toString(),
+        name: 'CaptureVisionNotifierError',
+        level: Level.SEVERE.value,
+      );
+      state = AsyncValue.error(CaptureVisionError(e.message), stackTrace);
+    } on Exception catch (e, stackTrace) {
+      log(
+        e.toString(),
+        name: 'CaptureVisionNotifierError',
+        level: Level.SEVERE.value,
+      );
+      state = AsyncValue.error(
+        CaptureVisionError('Unknown error occurred'),
+        stackTrace,
+      );
     }
   }
 }
 
-final captureVisionProvider = AsyncNotifierProvider.autoDispose<
-    CaptureVisionNotifier, CaptureVisionState>(() => CaptureVisionNotifier());
+final captureVisionProvider =
+    AsyncNotifierProvider.autoDispose<
+      CaptureVisionNotifier,
+      CaptureVisionState
+    >(CaptureVisionNotifier.new);

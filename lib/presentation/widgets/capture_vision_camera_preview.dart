@@ -23,9 +23,7 @@ class _CaptureVisionCameraPreviewState
     return CameraPreview(
       widget.controller,
       child: widget.isLoading
-          ? Center(
-              child: CircularProgressIndicator(),
-            )
+          ? Center(child: CircularProgressIndicator())
           : null,
     );
   }
