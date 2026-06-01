@@ -10,7 +10,7 @@ class ModelConfig {
   /// at build time with `--dart-define=MODEL_URL=...` when hosting the weights
   /// elsewhere or pointing at a different quantization.
   static const String defaultDownloadUrl =
-      'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/blob/main/gemma-4-E2B-it.litertlm?download=true';
+      'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm?download=true';
 
   /// Effective download URL, honouring the [Env.modelDownloadUrl] override.
   static String get downloadUrl =>
