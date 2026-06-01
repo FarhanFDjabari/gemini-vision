@@ -93,36 +93,99 @@ class _VisionResultDialogState extends ConsumerState<VisionResultDialog> {
       _ => ('', false),
     };
 
-    return AlertDialog(
-      title: Row(
-        children: [
-          const Icon(Icons.visibility_outlined),
-          const SizedBox(width: 8),
-          const Text('Vision'),
-          const Spacer(),
-          if (isComplete)
-            _SpeakButton(onReplay: () => _replay(text), onStop: _stop),
-        ],
-      ),
-      content: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(text: text),
-            if (!isComplete) const WidgetSpan(child: _BlinkingCursor()),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: isComplete
-              ? () {
-                  _stop();
-                  Navigator.of(context).pop();
-                }
-              : null,
-          child: const Text('Close'),
-        ),
-      ],
+    final colorScheme = Theme.of(context).colorScheme;
+    return DraggableScrollableSheet(
+      initialChildSize: 0.5,
+      minChildSize: 0.25,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) {
+        // Follow the newest tokens while streaming so the latest text stays in
+        // view; once complete, leave scrolling to the user.
+        if (!isComplete) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (scrollController.hasClients) {
+              scrollController.jumpTo(
+                scrollController.position.maxScrollExtent,
+              );
+            }
+          });
+        }
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Grab handle to signal the sheet can be dragged.
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 4),
+                width: 32,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 12, 0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.visibility_outlined),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Vision',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const Spacer(),
+                    if (isComplete)
+                      _SpeakButton(
+                        onReplay: () => _replay(text),
+                        onStop: _stop,
+                      ),
+                  ],
+                ),
+              ),
+              // The result scrolls so long captions stay fully readable; the
+              // sheet's controller is attached so dragging the text expands it.
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: text),
+                        if (!isComplete)
+                          const WidgetSpan(child: _BlinkingCursor()),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 12, 8),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: isComplete
+                          ? () {
+                              _stop();
+                              Navigator.of(context).pop();
+                            }
+                          : null,
+                      child: const Text('Close'),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
