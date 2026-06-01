@@ -38,6 +38,11 @@ class ModelSetupNotifier extends Notifier<ModelSetupState> {
       );
       await service.ensureLoaded();
       state = const ModelSetupReady();
+    } on InferenceCancelledException {
+      // User cancelled mid-download; purge the partial file so a restart
+      // begins cleanly rather than re-activating a truncated model.
+      await service.deleteModel();
+      state = const ModelSetupCancelled();
     } on InferenceException catch (e) {
       log(e.toString(), name: 'ModelSetupError', level: Level.SEVERE.value);
       state = ModelSetupError(e.message);
@@ -47,10 +52,17 @@ class ModelSetupNotifier extends Notifier<ModelSetupState> {
     }
   }
 
-  /// Re-runs the setup flow after a failure.
+  /// Re-runs the setup flow after a failure or cancellation.
   Future<void> retry() async {
     state = const ModelSetupChecking();
     await _start();
+  }
+
+  /// Cancels an in-progress download. The running [_start] future observes the
+  /// resulting [InferenceCancelledException] and transitions to
+  /// [ModelSetupCancelled].
+  void cancelDownload() {
+    ref.read(inferenceServiceProvider).cancelDownload();
   }
 }
 

@@ -19,6 +19,12 @@ class ModelSetupReady extends ModelSetupState {
   const ModelSetupReady();
 }
 
+/// The user cancelled the download; the partial model has been cleaned up and
+/// the download can be restarted.
+class ModelSetupCancelled extends ModelSetupState {
+  const ModelSetupCancelled();
+}
+
 /// Setup failed; [message] describes the failure.
 class ModelSetupError extends ModelSetupState {
   const ModelSetupError(this.message);

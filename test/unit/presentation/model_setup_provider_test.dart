@@ -10,7 +10,11 @@ import '../../fakes/fake_inference_service.dart';
 Future<void> _settle(ProviderContainer container, {int maxTicks = 50}) async {
   for (var tick = 0; tick < maxTicks; tick++) {
     final state = container.read(modelSetupProvider);
-    if (state is ModelSetupReady || state is ModelSetupError) return;
+    if (state is ModelSetupReady ||
+        state is ModelSetupError ||
+        state is ModelSetupCancelled) {
+      return;
+    }
     await Future<void>.delayed(Duration.zero);
   }
 }
@@ -97,6 +101,37 @@ void main() {
       expect(fake.deleteCalled, isTrue);
       expect(fake.downloadCalled, isTrue);
       expect(fake.ensureLoadedCalls, 2);
+    });
+
+    test('cancelling a download cleans up and reports cancelled', () async {
+      final fake = FakeInferenceService(
+        installed: false,
+        cancelDuringDownload: true,
+      );
+      final container = _containerFor(fake);
+
+      await _settle(container);
+
+      expect(container.read(modelSetupProvider), isA<ModelSetupCancelled>());
+      expect(fake.downloadCalled, isTrue);
+      expect(fake.deleteCalled, isTrue);
+    });
+
+    test('retry re-downloads after a cancellation', () async {
+      final fake = FakeInferenceService(
+        installed: false,
+        cancelDuringDownload: true,
+      );
+      final container = _containerFor(fake);
+
+      await _settle(container);
+      expect(container.read(modelSetupProvider), isA<ModelSetupCancelled>());
+
+      fake.cancelDuringDownload = false;
+      await container.read(modelSetupProvider.notifier).retry();
+      await _settle(container);
+
+      expect(container.read(modelSetupProvider), isA<ModelSetupReady>());
     });
 
     test('retry recovers after a transient failure', () async {

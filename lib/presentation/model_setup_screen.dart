@@ -22,7 +22,16 @@ class ModelSetupScreen extends ConsumerWidget {
         ),
       ),
       ModelSetupDownloading(:final progress) => _SetupScaffold(
-        child: _DownloadProgress(progress: progress),
+        child: _DownloadProgress(
+          progress: progress,
+          onCancel: () =>
+              ref.read(modelSetupProvider.notifier).cancelDownload(),
+        ),
+      ),
+      ModelSetupCancelled() => _SetupScaffold(
+        child: _SetupCancelled(
+          onDownload: () => ref.read(modelSetupProvider.notifier).retry(),
+        ),
       ),
       ModelSetupError(:final message) => _SetupScaffold(
         child: _SetupError(
@@ -72,9 +81,10 @@ class _StatusMessage extends StatelessWidget {
 }
 
 class _DownloadProgress extends StatelessWidget {
-  const _DownloadProgress({required this.progress});
+  const _DownloadProgress({required this.progress, required this.onCancel});
 
   final int progress;
+  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -94,8 +104,34 @@ class _DownloadProgress extends StatelessWidget {
         Text('$progress%'),
         const SizedBox(height: 16),
         const Text(
-          'This one-time download may take a few minutes.',
+          'This one-time download may take a few minutes. It continues in the '
+          'background and resumes after network interruptions.',
           textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        TextButton(onPressed: onCancel, child: const Text('Cancel')),
+      ],
+    );
+  }
+}
+
+class _SetupCancelled extends StatelessWidget {
+  const _SetupCancelled({required this.onDownload});
+
+  final VoidCallback onDownload;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.cloud_off, size: 48),
+        const SizedBox(height: 24),
+        const Text('Download cancelled.', textAlign: TextAlign.center),
+        const SizedBox(height: 24),
+        FilledButton(
+          onPressed: onDownload,
+          child: const Text('Download model'),
         ),
       ],
     );
